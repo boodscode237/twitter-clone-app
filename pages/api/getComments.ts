@@ -1,24 +1,27 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type { NextApiRequest, NextApiResponse } from 'next'
 import {sanityClient} from '../../sanity'
-import { Tweet } from '../../typings'
+import { Comment } from '../../typings'
 import {groq} from 'next-sanity'
 
-const feedQuery = groq`
-    *[_type == "tweet" && !blockTweet] {
+
+const commentQuery = groq`
+    *[_type == "comment" && references(*[_type == "tweet" && _id == $tweetId]._id)] {
         _id,
         ...
     } | order(_createdAt desc)
 `
 
-type Data = {
-  tweets: Tweet[]
-}
+type Data = Comment[]
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<Data>
 ) {
-    const tweets: Tweet[] = await sanityClient.fetch(feedQuery)
-    res.status(200).json({ tweets })
+    const {tweetId} = req.query
+
+    const comments: Comment[] = await sanityClient.fetch(commentQuery,{
+        tweetId,
+    })
+    res.status(200).json(comments)
 }
